@@ -2,13 +2,15 @@ import { ArgParser } from '../src/ArgParser';
 
 describe('Arg Parser Tests', () => {
     it('Should parse with no args', () => {
-        const parser = new ArgParser<null>();
+        const parser = new ArgParser();
         expect(() => parser.parse()).not.toThrow();
     });
 
     it('Should disallow leading tacks', () => {
-        const parser = new ArgParser<null>();
-        expect(() => parser.addArgument({ aliases: ['--flag'] })).toThrow(
+        const parser = new ArgParser();
+        expect(() =>
+            parser.addArgument({ aliases: ['--flag'], required: true }),
+        ).toThrow(
             'Alias prefix tacks are implicitly added. Remove the prefix from --flag',
         );
     });
@@ -18,7 +20,7 @@ describe('Arg Parser Tests', () => {
             f: boolean;
         };
         const parser = new ArgParser<Schema>();
-        parser.addArgument({ aliases: ['f'] });
+        parser.addArgument({ aliases: ['f'], required: true });
         const args = parser.parse(['-f']);
 
         console.log(args);
@@ -32,7 +34,7 @@ describe('Arg Parser Tests', () => {
             flag: boolean;
         };
         const parser = new ArgParser<Schema>();
-        parser.addArgument({ aliases: ['flag'] });
+        parser.addArgument({ aliases: ['flag'], required: true });
         const args = parser.parse(['--flag']);
 
         expect(args).toBeDefined();

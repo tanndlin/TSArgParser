@@ -1,34 +1,30 @@
-import { ArgumentOptions } from './types';
+import { MissingArgumentError } from './Errors';
+import { Argument } from './types';
+import { hasNoArgs } from './utils';
 
 export class ArgParser<T> {
-    private arguments: ArgumentOptions[] = [];
+    private arguments: Argument[] = [];
 
     public parse(givenArgs: string[] = process.argv.slice(2)): T {
         const parsedArgs = {} as T;
         this.arguments.forEach((arg) => {
             let found = false;
             // Parse flag arguments
-            const isFlag = arg.nargs === undefined;
-            if (isFlag) {
-                found = this.parseFlags(arg, givenArgs, parsedArgs);
+            const shoulParseNoArgs = hasNoArgs(arg);
+            if (shoulParseNoArgs) {
+                found = this.parseNoArgs(arg, givenArgs, parsedArgs);
             }
 
             if (!found && arg.required) {
-                throw new Error(
-                    `Missing required argument: ${arg.aliases.join(', ')}`,
-                );
+                throw new MissingArgumentError(arg.aliases.join(', '));
             }
         });
 
         return parsedArgs;
     }
 
-    private parseFlags(
-        arg: ArgumentOptions,
-        givenArgs: string[],
-        parsedArgs: T,
-    ) {
-        arg.aliases.forEach((alias) => {
+    private parseNoArgs(arg: Argument, givenArgs: string[], parsedArgs: T) {
+        for (const alias of arg.aliases) {
             const aliasLength = alias.length;
             const tacks = aliasLength === 1 ? '-' : '--';
             const cliFlag = `${tacks}${alias}`;
@@ -37,12 +33,12 @@ export class ArgParser<T> {
                 parsedArgs[alias as keyof T] = true as T[keyof T];
                 return true;
             }
-        });
+        }
 
         return false;
     }
 
-    public addArgument(arg: ArgumentOptions) {
+    public addArgument(arg: Argument) {
         if (arg.aliases.length === 0) {
             throw new Error('At least one alias is required');
         }
