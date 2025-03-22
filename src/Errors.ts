@@ -4,3 +4,10 @@ export class MissingArgumentError extends Error {
         this.name = 'MissingFlagError';
     }
 }
+
+export class NotEnoughValuesError extends Error {
+    constructor(arg: string) {
+        super(`Not enough values supplied (arg: ${arg})`);
+        this.name = 'NotEnoughValuesError';
+    }
+}

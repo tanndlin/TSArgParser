@@ -12,7 +12,5 @@ type OptionalArgument = {
 type BaseArgument = {
     aliases: string[];
     choices?: any[];
-    nargs?: NArgs;
+    nargs?: '?' | '*' | number;
 };
-
-type NArgs = '?' | '*' | number;

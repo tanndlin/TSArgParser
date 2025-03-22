@@ -7,3 +7,9 @@ export function hasNoArgs(arg: Argument): boolean {
 
     return false;
 }
+
+export function prependTacks(alias: string) {
+    const aliasLength = alias.length;
+    const tacks = aliasLength === 1 ? '-' : '--';
+    return `${tacks}${alias}`;
+}

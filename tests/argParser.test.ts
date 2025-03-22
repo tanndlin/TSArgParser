@@ -52,4 +52,43 @@ describe('Arg Parser Tests', () => {
             'Missing required argument: flag',
         );
     });
+
+    it('Should parse an arg with value', () => {
+        type Schema = {
+            foo: string;
+        };
+        const parser = new ArgParser<Schema>();
+        parser.addArgument({ aliases: ['foo'], required: true, nargs: 1 });
+        const args = parser.parse(['--foo', 'bar']);
+
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('foo');
+        expect(args.foo).toBeInstanceOf(String);
+        expect(args.foo).toBe('bar');
+    });
+
+    it('Should parse an arg with value', () => {
+        type Schema = {
+            foo: string;
+        };
+        const parser = new ArgParser<Schema>();
+        parser.addArgument({ aliases: ['foo'], required: true, nargs: 2 });
+        const args = parser.parse(['--foo', 'bar', 'baz']);
+
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('foo');
+        expect(args.foo).toBeInstanceOf(Array);
+        expect(args.foo).toBe(['bar', 'baz']);
+    });
+
+    it('Should throw for an arg with missing value', () => {
+        type Schema = {
+            foo: string;
+        };
+        const parser = new ArgParser<Schema>();
+        parser.addArgument({ aliases: ['foo'], required: true, nargs: 1 });
+        expect(() => parser.parse(['--foo'])).toThrow(
+            'Missing required argument: foo',
+        );
+    });
 });

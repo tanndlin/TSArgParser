@@ -1,13 +1,14 @@
 import { ArgParser } from './ArgParser';
 
 type Schema = {
-    flag: boolean;
+    foo: string;
 };
 
 const argParser = new ArgParser<Schema>();
 argParser.addArgument({
-    aliases: ['flag'],
+    aliases: ['foo'],
     required: true,
+    nargs: 1,
 });
 
-console.log(argParser.parse(['--flag']));
+console.log(argParser.parse(['--foo', 'bar']));
