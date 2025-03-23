@@ -1,11 +1,7 @@
-import { Argument } from './types';
+import { NArgs } from './types';
 
-export function hasNoArgs(arg: Argument): boolean {
-    if (arg.nargs === undefined || arg.nargs === 0) {
-        return true;
-    }
-
-    return false;
+export function hasNoArgs(nargs: NArgs): boolean {
+    return nargs === undefined || nargs === 0;
 }
 
 export function prependTacks(alias: string) {
