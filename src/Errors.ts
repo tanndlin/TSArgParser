@@ -27,3 +27,17 @@ export class UnknownShorthandError extends Error {
         this.name = 'UnknownShorthandError';
     }
 }
+
+export class DuplicateArgumentError extends Error {
+    constructor(arg: string) {
+        super(`Duplicate args specified to ArgParser (arg: ${arg})`);
+        this.name = 'DuplicateArgumentError';
+    }
+}
+
+export class DuplicateCLIArgumentError extends Error {
+    constructor(arg: string) {
+        super(`Duplicate args specified in command line (arg: ${arg})`);
+        this.name = 'DuplicateCLIArgumentError';
+    }
+}

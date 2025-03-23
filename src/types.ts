@@ -1,3 +1,5 @@
+export type Schema = Record<string, any>;
+
 type BaseArgument<T> = {
     name: Extract<keyof T, string>;
     required: boolean;

@@ -1,5 +1,7 @@
 import {
     AmbigousArgumentError,
+    DuplicateArgumentError,
+    DuplicateCLIArgumentError,
     MissingArgumentError,
     NotEnoughValuesError,
     UnknownShorthandError,
@@ -8,11 +10,19 @@ import { Argument } from './types';
 import { hasNoArgs, prependTacks } from './utils';
 
 export class ArgParser<T extends Record<string, any>> {
-    private arguments: Argument<T>[] = [];
-    private parsedArgs: T = {} as T;
+    private arguments: Argument<T>[];
+    private parsedArgs: T;
+
+    constructor(args: Argument<T>[] = []) {
+        this.arguments = [];
+        args.forEach((arg) => this.addArgument(arg));
+
+        this.parsedArgs = {} as T;
+    }
 
     public parse(givenArgs: string[] = process.argv.slice(2)): T {
         this.replaceShorthands(givenArgs);
+        this.checkDuplicateCLIArguments(givenArgs);
 
         this.arguments.forEach((arg) => {
             const shoulParseNoArgs = hasNoArgs(arg.nargs);
@@ -158,6 +168,10 @@ export class ArgParser<T extends Record<string, any>> {
             );
         }
 
+        if (this.arguments.some((a) => a.name === arg.name)) {
+            throw new DuplicateArgumentError(arg.name);
+        }
+
         this.arguments.push(arg);
     }
 
@@ -201,5 +215,16 @@ export class ArgParser<T extends Record<string, any>> {
                     (arg) => (givenArgs[arg.index] = prependTacks(match.name)),
                 );
         });
+    }
+
+    public checkDuplicateCLIArguments(givenArgs: string[]) {
+        const args = givenArgs.filter((arg) => arg.startsWith('--'));
+        const duplicates = args.filter((arg, index) => {
+            return args.indexOf(arg) !== index;
+        });
+
+        if (duplicates.length) {
+            throw new DuplicateCLIArgumentError(duplicates.join(', '));
+        }
     }
 }
