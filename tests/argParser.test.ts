@@ -9,7 +9,11 @@ describe('Arg Parser Tests', () => {
     it('Should disallow leading tacks', () => {
         const parser = new ArgParser();
         expect(() =>
-            parser.addArgument({ aliases: ['--flag'], required: true }),
+            parser.addArgument({
+                aliases: ['--flag'],
+                required: true,
+                nargs: 0,
+            }),
         ).toThrow(
             'Alias prefix tacks are implicitly added. Remove the prefix from --flag',
         );
@@ -20,10 +24,9 @@ describe('Arg Parser Tests', () => {
             f: boolean;
         };
         const parser = new ArgParser<Schema>();
-        parser.addArgument({ aliases: ['f'], required: true });
+        parser.addArgument({ aliases: ['f'], required: true, nargs: 0 });
         const args = parser.parse(['-f']);
 
-        console.log(args);
         expect(args).toBeDefined();
         expect(args).toHaveProperty('f');
         expect(args.f).toBe(true);
@@ -34,7 +37,7 @@ describe('Arg Parser Tests', () => {
             flag: boolean;
         };
         const parser = new ArgParser<Schema>();
-        parser.addArgument({ aliases: ['flag'], required: true });
+        parser.addArgument({ aliases: ['flag'], required: true, nargs: 0 });
         const args = parser.parse(['--flag']);
 
         expect(args).toBeDefined();
@@ -47,7 +50,7 @@ describe('Arg Parser Tests', () => {
             flag: boolean;
         };
         const parser = new ArgParser<Schema>();
-        parser.addArgument({ aliases: ['flag'], required: true });
+        parser.addArgument({ aliases: ['flag'], required: true, nargs: 0 });
         expect(() => parser.parse(['--hello --world'])).toThrow(
             'Missing required argument: flag',
         );
@@ -58,13 +61,29 @@ describe('Arg Parser Tests', () => {
             foo: string;
         };
         const parser = new ArgParser<Schema>();
-        parser.addArgument({ aliases: ['foo'], required: true, nargs: 1 });
+        parser.addArgument({
+            aliases: ['foo'],
+            required: true,
+            nargs: 1,
+        });
         const args = parser.parse(['--foo', 'bar']);
 
         expect(args).toBeDefined();
         expect(args).toHaveProperty('foo');
-        expect(args.foo).toBeInstanceOf(String);
         expect(args.foo).toBe('bar');
+    });
+
+    it('Should parse an arg with number value', () => {
+        type Schema = {
+            foo: number;
+        };
+        const parser = new ArgParser<Schema>();
+        parser.addArgument({ aliases: ['foo'], required: true, nargs: 1 });
+        const args = parser.parse(['--foo', '69']);
+
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('foo');
+        expect(args.foo).toBe(69);
     });
 
     it('Should parse an arg with value', () => {
@@ -78,7 +97,88 @@ describe('Arg Parser Tests', () => {
         expect(args).toBeDefined();
         expect(args).toHaveProperty('foo');
         expect(args.foo).toBeInstanceOf(Array);
-        expect(args.foo).toBe(['bar', 'baz']);
+        expect(args.foo).toStrictEqual(['bar', 'baz']);
+    });
+
+    it('Should parse an arg with not specified optional ? value', () => {
+        type Schema = {
+            foo: string;
+        };
+        const parser = new ArgParser<Schema>();
+        parser.addArgument({
+            aliases: ['foo'],
+            required: true,
+            nargs: '?',
+            default: 'bar',
+        });
+        const args = parser.parse(['--foo']);
+
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('foo');
+        expect(args.foo).toStrictEqual('bar');
+    });
+
+    it('Should parse an arg with specified optional ? value', () => {
+        type Schema = {
+            foo: string;
+        };
+        const parser = new ArgParser<Schema>();
+        parser.addArgument({
+            aliases: ['foo'],
+            required: true,
+            nargs: '?',
+            default: 'baz',
+        });
+        const args = parser.parse(['--foo', 'bar']);
+
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('foo');
+        expect(args.foo).toStrictEqual('bar');
+    });
+
+    it('Should parse rest of args for * nargs', () => {
+        type Schema = {
+            foo: string[];
+        };
+        const parser = new ArgParser<Schema>();
+        parser.addArgument({
+            aliases: ['foo'],
+            required: true,
+            nargs: '*',
+            default: [],
+        });
+        const args = parser.parse('--foo bar baz'.split(' '));
+
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('foo');
+        expect(args.foo).toStrictEqual(['bar', 'baz']);
+    });
+
+    it('Should parse rest of args for * nargs with following arg', () => {
+        type Schema = {
+            foo: string[];
+            bar: string;
+        };
+        const parser = new ArgParser<Schema>();
+        parser.addArgument({
+            aliases: ['foo'],
+            required: true,
+            nargs: '*',
+            default: [],
+        });
+
+        parser.addArgument({
+            aliases: ['hello'],
+            required: true,
+            nargs: 0,
+        });
+
+        const args = parser.parse('--foo bar baz --hello'.split(' '));
+
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('foo');
+        expect(args).toHaveProperty('hello');
+        expect(args.foo).toStrictEqual(['bar', 'baz']);
     });
 
     it('Should throw for an arg with missing value', () => {
@@ -88,7 +188,7 @@ describe('Arg Parser Tests', () => {
         const parser = new ArgParser<Schema>();
         parser.addArgument({ aliases: ['foo'], required: true, nargs: 1 });
         expect(() => parser.parse(['--foo'])).toThrow(
-            'Missing required argument: foo',
+            'Not enough values supplied (arg: foo)',
         );
     });
 });

@@ -8,7 +8,8 @@ const argParser = new ArgParser<Schema>();
 argParser.addArgument({
     aliases: ['foo'],
     required: true,
-    nargs: 1,
+    nargs: '?',
+    default: 'baz',
 });
 
-console.log(argParser.parse(['--foo', 'bar']));
+console.log(argParser.parse('--foo bar'.split(' ')));

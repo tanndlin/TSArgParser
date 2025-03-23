@@ -2,20 +2,16 @@ import { MissingArgumentError, NotEnoughValuesError } from './Errors';
 import { Argument } from './types';
 import { hasNoArgs, prependTacks } from './utils';
 
-export class ArgParser<T> {
+export class ArgParser<T extends Record<string, any>> {
     private arguments: Argument[] = [];
     private parsedArgs: T = {} as T;
 
     public parse(givenArgs: string[] = process.argv.slice(2)): T {
         this.arguments.forEach((arg) => {
-            let found = false;
-            // Parse flag arguments
             const shoulParseNoArgs = hasNoArgs(arg);
-            if (shoulParseNoArgs) {
-                found = this.parseNoArgs(arg, givenArgs);
-            } else {
-                found = this.parseWithArgs(arg, givenArgs);
-            }
+            const found = shoulParseNoArgs
+                ? this.parseNoArgs(arg, givenArgs)
+                : this.parseWithArgs(arg, givenArgs);
 
             if (!found && arg.required) {
                 throw new MissingArgumentError(arg.aliases.join(', '));
@@ -28,15 +24,76 @@ export class ArgParser<T> {
     private parseWithArgs(arg: Argument, givenArgs: string[]): boolean {
         switch (arg.nargs) {
             case '*':
-                return false;
+                return this.parseAnyArgs(arg, givenArgs);
             case '?':
-                return false;
+                return this.parseOptionalArg(arg, givenArgs);
             default:
                 return this.parseNArgs(arg, givenArgs);
         }
     }
 
+    private parseAnyArgs(arg: Argument, givenArgs: string[]): boolean {
+        if (arg.nargs !== '*') {
+            return false;
+        }
+
+        for (const alias of arg.aliases) {
+            const cliFlag = prependTacks(alias);
+            for (let argv = 0; argv < givenArgs.length; argv++) {
+                if (givenArgs[argv] === cliFlag) {
+                    let ret = [];
+                    let i = 1;
+                    let nextValue = givenArgs[argv + i];
+                    while (nextValue && !nextValue.startsWith('-')) {
+                        ret.push(nextValue);
+                        nextValue = givenArgs[argv + ++i];
+                    }
+
+                    if (!ret.length) {
+                        this.parsedArgs[alias as keyof T] =
+                            arg.default as T[keyof T];
+                    } else {
+                        this.parsedArgs[alias as keyof T] = ret as T[keyof T];
+                    }
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private parseOptionalArg(arg: Argument, givenArgs: string[]): boolean {
+        if (arg.nargs !== '?') {
+            return false;
+        }
+
+        for (const alias of arg.aliases) {
+            const cliFlag = prependTacks(alias);
+            for (let argv = 0; argv < givenArgs.length; argv++) {
+                if (givenArgs[argv] === cliFlag) {
+                    const nextValue = givenArgs[argv + 1];
+                    if (!nextValue || nextValue.startsWith('-')) {
+                        this.parsedArgs[alias as keyof T] = arg.default;
+                        return true;
+                    }
+
+                    this.parsedArgs[alias as keyof T] = givenArgs[
+                        argv + 1
+                    ] as T[keyof T];
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private parseNArgs(arg: Argument, givenArgs: string[]): boolean {
+        if (typeof arg.nargs !== 'number') {
+            return false;
+        }
+
         let found = false;
         for (const alias of arg.aliases) {
             const cliFlag = prependTacks(alias);
@@ -62,7 +119,7 @@ export class ArgParser<T> {
                     }
 
                     const nextValue = givenArgs[argv + 1];
-                    if (nextValue.startsWith('-')) {
+                    if (!nextValue || nextValue.startsWith('-')) {
                         throw new NotEnoughValuesError(alias);
                     }
 

@@ -1,16 +1,30 @@
-export type Argument = (RequiredArgument | OptionalArgument) & BaseArgument;
-
-type RequiredArgument = {
-    required: true;
-};
-
-type OptionalArgument = {
-    required: false;
-    default: any;
-};
-
 type BaseArgument = {
     aliases: string[];
+    required: boolean;
     choices?: any[];
-    nargs?: '?' | '*' | number;
 };
+
+type OptionalValueArgument =
+    | {
+          nargs: '?';
+          default: any;
+      }
+    | {
+          nargs: '*';
+          default: any[];
+      };
+
+export type RequiredValueArgument = {
+    nargs: number;
+};
+
+type FlagArgument = {
+    nargs: 0;
+};
+
+export type Argument = (
+    | OptionalValueArgument
+    | RequiredValueArgument
+    | FlagArgument
+) &
+    BaseArgument;
