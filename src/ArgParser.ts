@@ -8,7 +8,7 @@ import {
     UnknownShorthandError,
 } from './Errors';
 import { Argument } from './types';
-import { hasNoArgs, prependTacks } from './utils';
+import { hasNoArgs, prependTacks, stringToBool } from './utils';
 
 export class ArgParser<T extends Record<string, any>> {
     private arguments: Argument<T>[];
@@ -50,32 +50,45 @@ export class ArgParser<T extends Record<string, any>> {
         }
     }
 
+    private getCliFlagIndex(cliFlag: string, givenArgs: string[]): number {
+        return givenArgs.findIndex((arg) => arg === cliFlag);
+    }
+
+    private getNextValues(
+        index: number,
+        givenArgs: string[],
+        nargs: number,
+    ): string[] {
+        const values = [];
+        for (let i = 1; i <= nargs; i++) {
+            const value = givenArgs[index + i];
+            if (!value || value.startsWith('-')) {
+                break;
+            }
+            values.push(value);
+        }
+        return values;
+    }
+
     private parseAnyArgs(arg: Argument<T>, givenArgs: string[]): boolean {
         if (arg.nargs !== '*') {
             return false;
         }
 
         const cliFlag = prependTacks(arg.name);
-        for (let argv = 0; argv < givenArgs.length; argv++) {
-            if (givenArgs[argv] === cliFlag) {
-                let ret = [];
-                let i = 1;
-                let nextValue = givenArgs[argv + i];
-                while (nextValue && !nextValue.startsWith('-')) {
-                    ret.push(nextValue);
-                    nextValue = givenArgs[argv + ++i];
-                }
-
-                if (!ret.length) {
-                    this.setParsedArg(arg, arg.default);
-                } else {
-                    this.setParsedArg(arg, ret as T[keyof T]);
-                }
-                return true;
-            }
+        const index = this.getCliFlagIndex(cliFlag, givenArgs);
+        if (index === -1) {
+            return false;
         }
 
-        return false;
+        const values = this.getNextValues(index, givenArgs, Infinity);
+        if (!values.length) {
+            this.setParsedArg(arg, arg.default);
+        } else {
+            this.setParsedArg(arg, values as T[keyof T]);
+        }
+
+        return true;
     }
 
     private parseOptionalArg(arg: Argument<T>, givenArgs: string[]): boolean {
@@ -84,20 +97,18 @@ export class ArgParser<T extends Record<string, any>> {
         }
 
         const cliFlag = prependTacks(arg.name);
-        for (let argv = 0; argv < givenArgs.length; argv++) {
-            if (givenArgs[argv] === cliFlag) {
-                const nextValue = givenArgs[argv + 1];
-                if (!nextValue || nextValue.startsWith('-')) {
-                    this.setParsedArg(arg, arg.default);
-                    return true;
-                }
-
-                this.setParsedArg(arg, nextValue as T[keyof T]);
-                return true;
-            }
+        const index = this.getCliFlagIndex(cliFlag, givenArgs);
+        if (index === -1) {
+            this.setParsedArg(arg, arg.default);
+            return true;
         }
 
-        this.setParsedArg(arg, arg.default);
+        const [value] = this.getNextValues(index, givenArgs, 1);
+        if (!value) {
+            this.setParsedArg(arg, arg.default);
+        } else {
+            this.setParsedArg(arg, value as T[keyof T]);
+        }
         return true;
     }
 
@@ -107,38 +118,26 @@ export class ArgParser<T extends Record<string, any>> {
         }
 
         const cliFlag = prependTacks(arg.name);
-        for (let argv = 0; argv < givenArgs.length; argv++) {
-            if (givenArgs[argv] === cliFlag) {
-                const nargs = arg.nargs as number;
-                if (nargs > 1) {
-                    const ret = [];
-                    for (let i = 0; i < nargs; i++) {
-                        ret.push(givenArgs[argv + i + 1]);
-                    }
-
-                    if (ret.length !== arg.nargs) {
-                        throw new NotEnoughValuesError(arg.name);
-                    }
-
-                    this.setParsedArg(arg, ret as T[keyof T]);
-                    return true;
-                }
-
-                const nextValue = givenArgs[argv + 1];
-                if (!nextValue || nextValue.startsWith('-')) {
-                    throw new NotEnoughValuesError(arg.name);
-                }
-
-                this.setParsedArg(arg, nextValue as T[keyof T]);
-                return true;
+        const index = this.getCliFlagIndex(cliFlag, givenArgs);
+        if (index === -1) {
+            if (!arg.required) {
+                this.setParsedArg(arg, arg.default as T[keyof T]);
             }
+            return false;
         }
 
-        if (!arg.required) {
-            this.setParsedArg(arg, arg.default as T[keyof T]);
+        const values = this.getNextValues(index, givenArgs, arg.nargs);
+        if (values.length !== arg.nargs) {
+            throw new NotEnoughValuesError(arg.name);
         }
 
-        return false;
+        this.setParsedArg(
+            arg,
+            values.length > 1
+                ? (values as T[keyof T])
+                : (values[0] as T[keyof T]),
+        );
+        return true;
     }
 
     private parseNoArgs(arg: Argument<T>, givenArgs: string[]) {
@@ -151,31 +150,52 @@ export class ArgParser<T extends Record<string, any>> {
         return false;
     }
 
+    private validateChoices(arg: Argument<T>, value: any): void {
+        if (!arg.choices) {
+            return;
+        }
+
+        if (Array.isArray(value)) {
+            value.forEach((val: any) => {
+                if (!arg.choices!.includes(val)) {
+                    throw new InvalidChoiceError(
+                        arg.name,
+                        arg.choices as string[],
+                    );
+                }
+            });
+        } else if (!arg.choices.includes(value)) {
+            throw new InvalidChoiceError(arg.name, arg.choices as string[]);
+        }
+    }
+
+    private convertSingleValue(value: any, type: string): any {
+        if (type === 'number') {
+            return Number(value);
+        } else if (type === 'boolean') {
+            return stringToBool(`${value}`);
+        }
+        return value;
+    }
+
+    private convertType(arg: Argument<T>, value: any): T[keyof T] {
+        const isArrayType =
+            arg.nargs === '*' ||
+            (typeof arg.nargs === 'number' && arg.nargs > 1);
+
+        if (isArrayType && Array.isArray(value)) {
+            return value.map((val) =>
+                this.convertSingleValue(val, arg.type),
+            ) as T[keyof T];
+        }
+
+        return this.convertSingleValue(value, arg.type) as T[keyof T];
+    }
+
     private setParsedArg(arg: Argument<T>, value: T[keyof T]) {
-        this.parsedArgs[arg.name as keyof T] = value;
-
-        if (arg.choices) {
-            if (Array.isArray(value)) {
-                value.forEach((val: T[keyof T]) => {
-                    if (!arg.choices!.includes(val)) {
-                        throw new InvalidChoiceError(
-                            arg.name,
-                            arg.choices as string[],
-                        );
-                    }
-                });
-            } else if (!arg.choices.includes(value)) {
-                throw new InvalidChoiceError(arg.name, arg.choices as string[]);
-            }
-        }
-
-        if (arg.type === 'number') {
-            this.parsedArgs[arg.name as keyof T] = Number(value) as T[keyof T];
-        } else if (arg.type === 'boolean') {
-            this.parsedArgs[arg.name as keyof T] = Boolean(value) as T[keyof T];
-        } else {
-            this.parsedArgs[arg.name as keyof T] = value as T[keyof T];
-        }
+        this.validateChoices(arg, value);
+        const convertedValue = this.convertType(arg, value);
+        this.parsedArgs[arg.name as keyof T] = convertedValue;
     }
 
     public addArgument(arg: Argument<T>) {

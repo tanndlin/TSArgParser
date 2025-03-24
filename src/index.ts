@@ -1,17 +1,15 @@
-import { ArgParser } from './ArgParser';
+import { parseArgs } from '../tests/testutils';
 
-type Schema = {
-    foo: string;
-};
-
-const argParser = new ArgParser<Schema>();
-argParser.addArgument({
-    name: 'foo',
-    required: true,
-    type: 'string',
-    nargs: 2,
-    choices: ['bar', 'baz'],
-});
-
-const args = argParser.parse('--foo bar baz'.split(' '));
+const args = parseArgs(
+    [
+        {
+            name: 'numbers',
+            required: true,
+            nargs: '*',
+            type: 'number',
+            default: [],
+        },
+    ],
+    '--numbers 1 2 3',
+);
 console.log(args);

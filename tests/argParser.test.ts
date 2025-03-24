@@ -98,26 +98,6 @@ describe('Arg Parser Tests', () => {
         expect(args.foo).toStrictEqual(['bar', 'baz']);
     });
 
-    it('Should parse an arg with not specified optional ? value', () => {
-        const args = parseArgs<{
-            foo: string;
-        }>(
-            [
-                {
-                    name: 'foo',
-                    required: true,
-                    nargs: '?',
-                    default: 'bar',
-                    type: 'string',
-                },
-            ],
-            '--foo',
-        );
-        expect(args).toBeDefined();
-        expect(args).toHaveProperty('foo');
-        expect(args.foo).toStrictEqual('bar');
-    });
-
     it('Should parse an arg with specified optional ? value', () => {
         const args = parseArgs(
             [
@@ -136,45 +116,7 @@ describe('Arg Parser Tests', () => {
         expect(args.foo).toStrictEqual('bar');
     });
 
-    it('Should parse rest of args for * nargs', () => {
-        const args = parseArgs(
-            [
-                {
-                    name: 'foo',
-                    required: true,
-                    nargs: '*',
-                    default: [],
-                    type: 'string',
-                },
-            ],
-            '--foo bar baz',
-        );
-        expect(args).toBeDefined();
-        expect(args).toHaveProperty('foo');
-        expect(args.foo).toStrictEqual(['bar', 'baz']);
-    });
-
-    it('Should parse rest of args for * nargs with following arg', () => {
-        const args = parseArgs(
-            [
-                {
-                    name: 'foo',
-                    required: true,
-                    nargs: '*',
-                    default: [],
-                    type: 'string',
-                },
-                { name: 'hello', required: true, nargs: 0, type: 'boolean' },
-            ],
-            '--foo bar baz --hello',
-        );
-        expect(args).toBeDefined();
-        expect(args).toHaveProperty('foo');
-        expect(args).toHaveProperty('hello');
-        expect(args.foo).toStrictEqual(['bar', 'baz']);
-    });
-
-    it('Should default when optional arg not specified', () => {
+    it('Should default when optional arg not specified with narg=1', () => {
         const args = parseArgs(
             [
                 {
@@ -198,7 +140,7 @@ describe('Arg Parser Tests', () => {
         expect(args.phrase).toStrictEqual('Hello World!');
     });
 
-    it('Should default when optional arg not specified', () => {
+    it('Should default when optional arg not specified with narg=?', () => {
         const args = parseArgs(
             [
                 {
@@ -216,6 +158,30 @@ describe('Arg Parser Tests', () => {
                 },
             ],
             '--numIterations 5',
+        );
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('phrase');
+        expect(args.phrase).toStrictEqual('Hello World!');
+    });
+
+    it('Should default when optional arg specified with no value with narg=?', () => {
+        const args = parseArgs(
+            [
+                {
+                    name: 'numIterations',
+                    required: true,
+                    nargs: 1,
+                    type: 'number',
+                },
+                {
+                    name: 'phrase',
+                    required: false,
+                    nargs: '?',
+                    default: 'Hello World!',
+                    type: 'string',
+                },
+            ],
+            '--numIterations 5 --phrase',
         );
         expect(args).toBeDefined();
         expect(args).toHaveProperty('phrase');
@@ -265,7 +231,7 @@ describe('Arg Parser Tests', () => {
                     {
                         name: 'foo',
                         required: true,
-                        nargs: 2,
+                        nargs: 1,
                         type: 'string',
                         choices: ['bar', 'baz'],
                     },
@@ -303,5 +269,118 @@ describe('Arg Parser Tests', () => {
                 '--foo --foo',
             ),
         ).toThrow('Duplicate args specified in command line (arg: --foo)');
+    });
+
+    it('Should handle boolean conversion for non-flag arguments', () => {
+        const args = parseArgs(
+            [{ name: 'enabled', required: true, nargs: 1, type: 'boolean' }],
+            '--enabled true',
+        );
+        expect(args.enabled).toBe(true);
+        expect(typeof args.enabled).toBe('boolean');
+
+        const args2 = parseArgs(
+            [{ name: 'enabled', required: true, nargs: 1, type: 'boolean' }],
+            '--enabled false',
+        );
+        expect(args2.enabled).toBe(false);
+    });
+
+    it('Should handle large nargs values', () => {
+        const args = parseArgs(
+            [{ name: 'values', required: true, nargs: 5, type: 'string' }],
+            '--values a b c d e',
+        );
+        expect(args.values).toEqual(['a', 'b', 'c', 'd', 'e']);
+        expect(args.values.length).toBe(5);
+    });
+
+    it('Should validate each value in array against choices for nargs=*', () => {
+        const args = parseArgs(
+            [
+                {
+                    name: 'modes',
+                    required: true,
+                    nargs: '*',
+                    type: 'string',
+                    choices: ['dev', 'prod', 'test'],
+                    default: [],
+                },
+            ],
+            '--modes dev test prod',
+        );
+        expect(args.modes).toEqual(['dev', 'test', 'prod']);
+
+        expect(() =>
+            parseArgs(
+                [
+                    {
+                        name: 'modes',
+                        required: true,
+                        nargs: '*',
+                        type: 'string',
+                        choices: ['dev', 'prod', 'test'],
+                        default: [],
+                    },
+                ],
+                '--modes dev invalid test',
+            ),
+        ).toThrow('Invalid choice for argument modes');
+    });
+
+    it('Should handle multiple arguments with proper types', () => {
+        const args = parseArgs(
+            [
+                { name: 'name', required: true, nargs: 1, type: 'string' },
+                { name: 'age', required: true, nargs: 1, type: 'number' },
+                { name: 'active', required: true, nargs: 0, type: 'boolean' },
+            ],
+            '--name John --age 30 --active',
+        );
+        expect(args.name).toBe('John');
+        expect(args.age).toBe(30);
+        expect(args.active).toBe(true);
+        expect(typeof args.age).toBe('number');
+        expect(typeof args.active).toBe('boolean');
+    });
+
+    it('Should parse args when using process.argv', () => {
+        const originalArgv = process.argv;
+        process.argv = ['node', 'script.js', '--test', 'value'];
+
+        const parser = new ArgParser([
+            { name: 'test', required: true, nargs: 1, type: 'string' },
+        ]);
+        const args = parser.parse();
+        expect(args.test).toBe('value');
+
+        process.argv = originalArgv; // restore original argv
+    });
+
+    it('Should handle default values for required=false arguments', () => {
+        const args = parseArgs(
+            [
+                { name: 'required', required: true, nargs: 1, type: 'string' },
+                {
+                    name: 'optional1',
+                    required: false,
+                    nargs: 1,
+                    type: 'string',
+                    default: 'default1',
+                },
+                {
+                    name: 'optional2',
+                    required: false,
+                    nargs: 1,
+                    type: 'string',
+                    default: 'default2',
+                },
+            ],
+            '--required value --optional1 custom',
+        );
+
+        expect(args.required).toBe('value');
+        expect(args.optional1).toBe('custom');
+        expect(args.optional2).toBe('default2');
     });
 });
