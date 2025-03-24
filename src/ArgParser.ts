@@ -153,8 +153,20 @@ export class ArgParser<T extends Record<string, any>> {
 
     private setParsedArg(arg: Argument<T>, value: T[keyof T]) {
         this.parsedArgs[arg.name as keyof T] = value;
-        if (arg.choices && !arg.choices.includes(value)) {
-            throw new InvalidChoiceError(arg.name, arg.choices as string[]);
+
+        if (arg.choices) {
+            if (Array.isArray(value)) {
+                value.forEach((val: T[keyof T]) => {
+                    if (!arg.choices!.includes(val)) {
+                        throw new InvalidChoiceError(
+                            arg.name,
+                            arg.choices as string[],
+                        );
+                    }
+                });
+            } else if (!arg.choices.includes(value)) {
+                throw new InvalidChoiceError(arg.name, arg.choices as string[]);
+            }
         }
 
         if (arg.type === 'number') {

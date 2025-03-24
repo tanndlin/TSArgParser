@@ -222,6 +222,59 @@ describe('Arg Parser Tests', () => {
         expect(args.phrase).toStrictEqual('Hello World!');
     });
 
+    it('Should allow correct choices', () => {
+        const args = parseArgs(
+            [
+                {
+                    name: 'foo',
+                    required: true,
+                    nargs: 1,
+                    type: 'string',
+                    choices: ['bar', 'baz'],
+                },
+            ],
+            '--foo bar',
+        );
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('foo');
+        expect(args.foo).toStrictEqual('bar');
+    });
+
+    it('Should allow multiple correct choices', () => {
+        const args = parseArgs(
+            [
+                {
+                    name: 'foo',
+                    required: true,
+                    nargs: 2,
+                    type: 'string',
+                    choices: ['bar', 'baz', 'fun'],
+                },
+            ],
+            '--foo bar fun',
+        );
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('foo');
+        expect(args.foo).toStrictEqual(['bar', 'fun']);
+    });
+
+    it('Should disallow incorrect choices', () => {
+        expect(() =>
+            parseArgs(
+                [
+                    {
+                        name: 'foo',
+                        required: true,
+                        nargs: 2,
+                        type: 'string',
+                        choices: ['bar', 'baz'],
+                    },
+                ],
+                '--foo fun',
+            ),
+        ).toThrow('Invalid choice for argument foo (choices: bar, baz)');
+    });
+
     it('Should throw for an arg with missing value', () => {
         expect(() =>
             parseArgs(
