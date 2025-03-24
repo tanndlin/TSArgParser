@@ -10,7 +10,15 @@ describe('Arg Parser Tests', () => {
 
     it('Should ignore unspecified args', () => {
         const args = parseArgs(
-            [{ name: 'flag', required: false, nargs: 0, type: 'boolean' }],
+            [
+                {
+                    name: 'flag',
+                    required: false,
+                    nargs: 0,
+                    type: 'boolean',
+                    default: false,
+                },
+            ],
             '--hello',
         );
         expect(args).toStrictEqual({});
@@ -91,7 +99,9 @@ describe('Arg Parser Tests', () => {
     });
 
     it('Should parse an arg with not specified optional ? value', () => {
-        const args = parseArgs(
+        const args = parseArgs<{
+            foo: string;
+        }>(
             [
                 {
                     name: 'foo',
@@ -162,6 +172,54 @@ describe('Arg Parser Tests', () => {
         expect(args).toHaveProperty('foo');
         expect(args).toHaveProperty('hello');
         expect(args.foo).toStrictEqual(['bar', 'baz']);
+    });
+
+    it('Should default when optional arg not specified', () => {
+        const args = parseArgs(
+            [
+                {
+                    name: 'numIterations',
+                    required: true,
+                    nargs: 1,
+                    type: 'number',
+                },
+                {
+                    name: 'phrase',
+                    required: false,
+                    nargs: 1,
+                    default: 'Hello World!',
+                    type: 'string',
+                },
+            ],
+            '--numIterations 5',
+        );
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('phrase');
+        expect(args.phrase).toStrictEqual('Hello World!');
+    });
+
+    it('Should default when optional arg not specified', () => {
+        const args = parseArgs(
+            [
+                {
+                    name: 'numIterations',
+                    required: true,
+                    nargs: 1,
+                    type: 'number',
+                },
+                {
+                    name: 'phrase',
+                    required: false,
+                    nargs: '?',
+                    default: 'Hello World!',
+                    type: 'string',
+                },
+            ],
+            '--numIterations 5',
+        );
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('phrase');
+        expect(args.phrase).toStrictEqual('Hello World!');
     });
 
     it('Should throw for an arg with missing value', () => {

@@ -1,16 +1,29 @@
 import { ArgParser } from './ArgParser';
 
 type Schema = {
-    foo: string[];
-    hello: string;
+    numIterations: number;
+    phrase: string;
 };
 
 const argParser = new ArgParser<Schema>();
 argParser.addArgument({
-    name: 'foo',
+    name: 'numIterations',
     required: true,
     type: 'number',
     nargs: 1,
 });
 
-console.log(argParser.parse('-f 69'.split(' ')));
+argParser.addArgument({
+    name: 'phrase',
+    required: false,
+    type: 'string',
+    nargs: '?',
+    default: 'Hello World!',
+});
+
+const args = argParser.parse();
+console.log(args);
+
+for (let i = 0; i < args.numIterations; i++) {
+    console.log(args.phrase);
+}

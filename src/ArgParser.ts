@@ -97,7 +97,8 @@ export class ArgParser<T extends Record<string, any>> {
             }
         }
 
-        return false;
+        this.setParsedArg(arg, arg.default);
+        return true;
     }
 
     private parseNArgs(arg: Argument<T>, givenArgs: string[]): boolean {
@@ -131,6 +132,10 @@ export class ArgParser<T extends Record<string, any>> {
                 this.setParsedArg(arg, nextValue as T[keyof T]);
                 return true;
             }
+        }
+
+        if (!arg.required) {
+            this.setParsedArg(arg, arg.default as T[keyof T]);
         }
 
         return false;
