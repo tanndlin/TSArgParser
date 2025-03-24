@@ -3,6 +3,7 @@ export type Schema = Record<string, any>;
 type BaseArgument<T> = {
     name: Extract<keyof T, string>;
     required: boolean;
+    type: 'string' | 'number' | 'boolean';
     choices?: T[keyof T][];
 };
 
@@ -21,6 +22,8 @@ export type RequiredValueArgument = {
 
 type FlagArgument = {
     nargs: 0;
+    type: 'boolean';
+    default: false;
 };
 
 export type Argument<T> = (

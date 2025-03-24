@@ -2,6 +2,7 @@ import {
     AmbigousArgumentError,
     DuplicateArgumentError,
     DuplicateCLIArgumentError,
+    InvalidChoiceError,
     MissingArgumentError,
     NotEnoughValuesError,
     UnknownShorthandError,
@@ -25,8 +26,8 @@ export class ArgParser<T extends Record<string, any>> {
         this.checkDuplicateCLIArguments(givenArgs);
 
         this.arguments.forEach((arg) => {
-            const shoulParseNoArgs = hasNoArgs(arg.nargs);
-            const found = shoulParseNoArgs
+            const shouldParseNoArgs = hasNoArgs(arg.nargs);
+            const found = shouldParseNoArgs
                 ? this.parseNoArgs(arg, givenArgs)
                 : this.parseWithArgs(arg, givenArgs);
 
@@ -66,12 +67,9 @@ export class ArgParser<T extends Record<string, any>> {
                 }
 
                 if (!ret.length) {
-                    this.parsedArgs[arg.name] = arg.default;
+                    this.setParsedArg(arg, arg.default);
                 } else {
-                    this.parsedArgs[arg.name] = ret as T[Extract<
-                        keyof T,
-                        string
-                    >];
+                    this.setParsedArg(arg, ret as T[keyof T]);
                 }
                 return true;
             }
@@ -90,13 +88,11 @@ export class ArgParser<T extends Record<string, any>> {
             if (givenArgs[argv] === cliFlag) {
                 const nextValue = givenArgs[argv + 1];
                 if (!nextValue || nextValue.startsWith('-')) {
-                    this.parsedArgs[arg.name as keyof T] = arg.default;
+                    this.setParsedArg(arg, arg.default);
                     return true;
                 }
 
-                this.parsedArgs[arg.name as keyof T] = givenArgs[
-                    argv + 1
-                ] as T[keyof T];
+                this.setParsedArg(arg, nextValue as T[keyof T]);
                 return true;
             }
         }
@@ -123,10 +119,7 @@ export class ArgParser<T extends Record<string, any>> {
                         throw new NotEnoughValuesError(arg.name);
                     }
 
-                    this.parsedArgs[arg.name] = ret as T[Extract<
-                        keyof T,
-                        string
-                    >];
+                    this.setParsedArg(arg, ret as T[keyof T]);
                     return true;
                 }
 
@@ -135,7 +128,7 @@ export class ArgParser<T extends Record<string, any>> {
                     throw new NotEnoughValuesError(arg.name);
                 }
 
-                this.parsedArgs[arg.name as keyof T] = nextValue as T[keyof T];
+                this.setParsedArg(arg, nextValue as T[keyof T]);
                 return true;
             }
         }
@@ -146,11 +139,26 @@ export class ArgParser<T extends Record<string, any>> {
     private parseNoArgs(arg: Argument<T>, givenArgs: string[]) {
         const cliFlag = prependTacks(arg.name);
         if (givenArgs.includes(cliFlag)) {
-            this.parsedArgs[arg.name] = true as T[Extract<keyof T, string>];
+            this.setParsedArg(arg, true as T[keyof T]);
             return true;
         }
 
         return false;
+    }
+
+    private setParsedArg(arg: Argument<T>, value: T[keyof T]) {
+        this.parsedArgs[arg.name as keyof T] = value;
+        if (arg.choices && !arg.choices.includes(value)) {
+            throw new InvalidChoiceError(arg.name, arg.choices as string[]);
+        }
+
+        if (arg.type === 'number') {
+            this.parsedArgs[arg.name as keyof T] = Number(value) as T[keyof T];
+        } else if (arg.type === 'boolean') {
+            this.parsedArgs[arg.name as keyof T] = Boolean(value) as T[keyof T];
+        } else {
+            this.parsedArgs[arg.name as keyof T] = value as T[keyof T];
+        }
     }
 
     public addArgument(arg: Argument<T>) {

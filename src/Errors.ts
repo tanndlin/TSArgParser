@@ -41,3 +41,12 @@ export class DuplicateCLIArgumentError extends Error {
         this.name = 'DuplicateCLIArgumentError';
     }
 }
+
+export class InvalidChoiceError extends Error {
+    constructor(arg: string, choices: string[]) {
+        super(
+            `Invalid choice for argument ${arg} (choices: ${choices.join(', ')})`,
+        );
+        this.name = 'InvalidChoiceError';
+    }
+}

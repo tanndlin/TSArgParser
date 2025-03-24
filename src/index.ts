@@ -9,14 +9,8 @@ const argParser = new ArgParser<Schema>();
 argParser.addArgument({
     name: 'foo',
     required: true,
-    nargs: '*',
-    default: [],
+    type: 'number',
+    nargs: 1,
 });
 
-argParser.addArgument({
-    name: 'hello',
-    required: true,
-    nargs: 0,
-});
-
-console.log(argParser.parse('-f bar baz --hello'.split(' ')));
+console.log(argParser.parse('-f 69'.split(' ')));

@@ -4,7 +4,7 @@ describe('Shorthand Parsing Tests', () => {
     it('Should allow shorthand for non-ambiguous flag', () => {
         const args = parseArgs<{
             flag: boolean;
-        }>([{ name: 'flag', required: true, nargs: 0 }], '-f');
+        }>([{ name: 'flag', required: true, nargs: 0, type: 'boolean' }], '-f');
         expect(args).toBeDefined();
         expect(args).toHaveProperty('flag');
         expect(args.flag).toBe(true);
@@ -17,8 +17,8 @@ describe('Shorthand Parsing Tests', () => {
                 foo: boolean;
             }>(
                 [
-                    { name: 'flag', required: true, nargs: 0 },
-                    { name: 'foo', required: true, nargs: 0 },
+                    { name: 'flag', required: true, nargs: 0, type: 'boolean' },
+                    { name: 'foo', required: true, nargs: 0, type: 'boolean' },
                 ],
                 '-f',
             ),
