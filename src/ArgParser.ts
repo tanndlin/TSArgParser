@@ -10,6 +10,7 @@ import {
     ZeroNargsError,
 } from './Errors';
 import {
+    AnyValueArgument,
     Argument,
     FlagArgument,
     OptionalValueArgument,
@@ -80,17 +81,14 @@ export class ArgParser<S extends Schema> {
     }
 
     private parseAnyArgs(
-        arg: OptionalValueArgument<S>,
+        arg: AnyValueArgument<S>,
         givenArgs: string[],
     ): boolean {
-        if (arg.nargs !== '*') {
-            return false;
-        }
-
         const cliFlag = prependTacks(arg.name);
         const index = this.getCliFlagIndex(cliFlag, givenArgs);
         if (index === -1) {
-            return false;
+            this.setParsedArg(arg, arg.default);
+            return true;
         }
 
         const values = this.getNextValues(index, givenArgs, Infinity);
@@ -107,10 +105,6 @@ export class ArgParser<S extends Schema> {
         arg: OptionalValueArgument<S>,
         givenArgs: string[],
     ): boolean {
-        if (arg.nargs !== '?') {
-            return false;
-        }
-
         const cliFlag = prependTacks(arg.name);
         const index = this.getCliFlagIndex(cliFlag, givenArgs);
         if (index === -1) {

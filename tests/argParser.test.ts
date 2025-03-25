@@ -224,6 +224,22 @@ describe('Arg Parser Tests', () => {
         ).toThrow('Invalid choice for argument modes');
     });
 
+    it('Should handle default values for nargs=*', () => {
+        const args = parseArgs(
+            [
+                {
+                    name: 'modes',
+                    nargs: '*',
+
+                    choices: ['dev', 'prod', 'test'],
+                    default: 'dev',
+                },
+            ],
+            '',
+        );
+        expect(args.modes).toEqual('dev');
+    });
+
     it('Should handle multiple arguments with proper types', () => {
         const args = parseArgs<{
             name: string;
