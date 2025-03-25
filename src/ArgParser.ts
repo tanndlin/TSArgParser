@@ -175,8 +175,8 @@ export class ArgParser<S extends Schema> {
                     );
                 }
             });
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        } else if (!arg.choices.includes(value)) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, eqeqeq
+        } else if (!arg.choices.some((v) => v == value)) {
             throw new InvalidChoiceError(arg.name, arg.choices as string[]);
         }
     }

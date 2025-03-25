@@ -210,6 +210,22 @@ describe('Arg Parser Tests', () => {
         ).toThrow('Invalid choice for argument foo (choices: bar, baz)');
     });
 
+    it('Should enforce numeric choices', () => {
+        const args = parseArgs(
+            [
+                {
+                    name: 'foo',
+                    nargs: 1,
+                    choices: [1, 2, 3],
+                },
+            ],
+            '--foo 2',
+        );
+        expect(args).toBeDefined();
+        expect(args).toHaveProperty('foo');
+        expect(args.foo).toStrictEqual(2);
+    });
+
     it('Should throw for an arg with missing value', () => {
         expect(() => parseArgs([{ name: 'foo', nargs: 1 }], '--foo')).toThrow(
             'Not enough values supplied (arg: foo)',
