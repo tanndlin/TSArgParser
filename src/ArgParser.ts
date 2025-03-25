@@ -160,7 +160,7 @@ export class ArgParser<S extends Schema> {
         return true;
     }
 
-    private validateChoices(arg: Argument<S>, value: any): void {
+    private validateChoices(arg: ValueArgument<S>, value: any): void {
         if (!arg.choices) {
             return;
         }
@@ -221,7 +221,7 @@ export class ArgParser<S extends Schema> {
         return this.convertSingleValue(value, arg) as S[keyof S];
     }
 
-    private setParsedArg(arg: Argument<S>, value: S[keyof S]) {
+    private setParsedArg(arg: ValueArgument<S>, value: S[keyof S]) {
         this.validateChoices(arg, value);
         const convertedValue = this.convertType(arg, value);
         this.parsedArgs[arg.name as keyof S] = convertedValue;

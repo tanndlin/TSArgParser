@@ -5,14 +5,15 @@ export type BaseArgument<
     K extends Extract<keyof S, string> = Extract<keyof S, string>,
 > = {
     name: K;
-    choices?: S[K][];
 };
 
 export type RequiredValueArgument<
     S extends Schema,
     K extends Extract<keyof S, string> = Extract<keyof S, string>,
+    V = S[K],
 > = {
     nargs: number;
+    choices?: V[];
 } & BaseArgument<S, K>;
 
 export type FlagArgument<
@@ -25,9 +26,11 @@ export type FlagArgument<
 export type OptionalValueArgument<
     S extends Schema,
     K extends Extract<keyof S, string> = Extract<keyof S, string>,
+    V = S[K],
 > = {
     nargs: '?' | '*';
     default: S[K];
+    choices?: V[];
 } & BaseArgument<S, K>;
 
 export type ValueArgument<
@@ -39,5 +42,3 @@ export type Argument<
     S extends Schema,
     K extends Extract<keyof S, string> = Extract<keyof S, string>,
 > = ValueArgument<S, K> | FlagArgument<S, K>;
-
-export type NArgs = Argument<any, any>['nargs'];
