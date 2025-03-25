@@ -6,7 +6,6 @@ const args = parseArgs(
             name: 'numbers',
             required: true,
             nargs: '*',
-            type: 'number',
             default: [],
         },
     ],

@@ -12,6 +12,15 @@ export class NotEnoughValuesError extends Error {
     }
 }
 
+export class ZeroNargsError extends Error {
+    constructor(arg: string) {
+        super(
+            `nargs=0 is not allowed Did you mean nargs='flag'? (arg: ${arg})`,
+        );
+        this.name = 'ZeroNargsError';
+    }
+}
+
 export class AmbigousArgumentError extends Error {
     constructor(args: string[]) {
         super(

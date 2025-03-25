@@ -6,30 +6,31 @@ import {
     MissingArgumentError,
     NotEnoughValuesError,
     UnknownShorthandError,
+    ZeroNargsError,
 } from './Errors';
-import { Argument } from './types';
-import { hasNoArgs, prependTacks, stringToBool } from './utils';
+import { Argument, FlagArgument, Schema } from './types';
+import { prependTacks, stringToBool } from './utils';
 
-export class ArgParser<T extends Record<string, any>> {
-    private arguments: Argument<T>[];
-    private parsedArgs: T;
+export class ArgParser<S extends Schema> {
+    private arguments: Argument<S, Extract<keyof S, string>>[];
+    private parsedArgs: S;
 
-    constructor(args: Argument<T>[] = []) {
+    constructor(args: Argument<S, Extract<keyof S, string>>[] = []) {
         this.arguments = [];
         args.forEach((arg) => this.addArgument(arg));
 
-        this.parsedArgs = {} as T;
+        this.parsedArgs = {} as S;
     }
 
-    public parse(givenArgs: string[] = process.argv.slice(2)): T {
+    public parse(givenArgs: string[] = process.argv.slice(2)): S {
         this.replaceShorthands(givenArgs);
         this.checkDuplicateCLIArguments(givenArgs);
 
         this.arguments.forEach((arg) => {
-            const shouldParseNoArgs = hasNoArgs(arg.nargs);
-            const found = shouldParseNoArgs
-                ? this.parseNoArgs(arg, givenArgs)
-                : this.parseWithArgs(arg, givenArgs);
+            const found =
+                arg.nargs === 'flag'
+                    ? this.parseFlagArg(arg, givenArgs)
+                    : this.parseWithArgs(arg, givenArgs);
 
             if (!found && arg.required) {
                 throw new MissingArgumentError(arg.name);
@@ -39,7 +40,10 @@ export class ArgParser<T extends Record<string, any>> {
         return this.parsedArgs;
     }
 
-    private parseWithArgs(arg: Argument<T>, givenArgs: string[]): boolean {
+    private parseWithArgs(
+        arg: Argument<S, Extract<keyof S, string>>,
+        givenArgs: string[],
+    ): boolean {
         switch (arg.nargs) {
             case '*':
                 return this.parseAnyArgs(arg, givenArgs);
@@ -70,7 +74,10 @@ export class ArgParser<T extends Record<string, any>> {
         return values;
     }
 
-    private parseAnyArgs(arg: Argument<T>, givenArgs: string[]): boolean {
+    private parseAnyArgs(
+        arg: Argument<S, Extract<keyof S, string>>,
+        givenArgs: string[],
+    ): boolean {
         if (arg.nargs !== '*') {
             return false;
         }
@@ -85,13 +92,16 @@ export class ArgParser<T extends Record<string, any>> {
         if (!values.length) {
             this.setParsedArg(arg, arg.default);
         } else {
-            this.setParsedArg(arg, values as T[keyof T]);
+            this.setParsedArg(arg, values as S[keyof S]);
         }
 
         return true;
     }
 
-    private parseOptionalArg(arg: Argument<T>, givenArgs: string[]): boolean {
+    private parseOptionalArg(
+        arg: Argument<S, Extract<keyof S, string>>,
+        givenArgs: string[],
+    ): boolean {
         if (arg.nargs !== '?') {
             return false;
         }
@@ -107,12 +117,15 @@ export class ArgParser<T extends Record<string, any>> {
         if (!value) {
             this.setParsedArg(arg, arg.default);
         } else {
-            this.setParsedArg(arg, value as T[keyof T]);
+            this.setParsedArg(arg, value as S[keyof S]);
         }
         return true;
     }
 
-    private parseNArgs(arg: Argument<T>, givenArgs: string[]): boolean {
+    private parseNArgs(
+        arg: Argument<S, Extract<keyof S, string>>,
+        givenArgs: string[],
+    ): boolean {
         if (typeof arg.nargs !== 'number') {
             return false;
         }
@@ -121,7 +134,7 @@ export class ArgParser<T extends Record<string, any>> {
         const index = this.getCliFlagIndex(cliFlag, givenArgs);
         if (index === -1) {
             if (!arg.required) {
-                this.setParsedArg(arg, arg.default as T[keyof T]);
+                this.setParsedArg(arg, arg.default as S[keyof S]);
             }
             return false;
         }
@@ -134,29 +147,35 @@ export class ArgParser<T extends Record<string, any>> {
         this.setParsedArg(
             arg,
             values.length > 1
-                ? (values as T[keyof T])
-                : (values[0] as T[keyof T]),
+                ? (values as S[keyof S])
+                : (values[0] as S[keyof S]),
         );
         return true;
     }
 
-    private parseNoArgs(arg: Argument<T>, givenArgs: string[]) {
+    private parseFlagArg(
+        arg: FlagArgument<S, Extract<keyof S, string>>,
+        givenArgs: string[],
+    ) {
         const cliFlag = prependTacks(arg.name);
-        if (givenArgs.includes(cliFlag)) {
-            this.setParsedArg(arg, true as T[keyof T]);
-            return true;
-        }
+        this.parsedArgs[arg.name as keyof S] = givenArgs.includes(
+            cliFlag,
+        ) as S[keyof S];
 
-        return false;
+        return true;
     }
 
-    private validateChoices(arg: Argument<T>, value: any): void {
+    private validateChoices(
+        arg: Argument<S, Extract<keyof S, string>>,
+        value: any,
+    ): void {
         if (!arg.choices) {
             return;
         }
 
         if (Array.isArray(value)) {
             value.forEach((val: any) => {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 if (!arg.choices!.includes(val)) {
                     throw new InvalidChoiceError(
                         arg.name,
@@ -164,41 +183,69 @@ export class ArgParser<T extends Record<string, any>> {
                     );
                 }
             });
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         } else if (!arg.choices.includes(value)) {
             throw new InvalidChoiceError(arg.name, arg.choices as string[]);
         }
     }
 
-    private convertSingleValue(value: any, type: string): any {
-        if (type === 'number') {
-            return Number(value);
-        } else if (type === 'boolean') {
-            return stringToBool(`${value}`);
+    private convertSingleValue(
+        value: any,
+        arg: Argument<S, Extract<keyof S, string>>,
+    ): any {
+        // If it's a flag argument (nargs=0), treat as boolean
+        if (arg.nargs === 'flag') {
+            return true;
         }
+
+        // Try to infer type from default value if available
+        if (arg.default !== undefined) {
+            const defaultType = typeof arg.default;
+            if (defaultType === 'number') {
+                return Number(value);
+            } else if (defaultType === 'boolean') {
+                return stringToBool(`${value}`);
+            }
+        }
+
+        // Fallback to simple type detection
+        if (value === 'true' || value === 'false') {
+            return stringToBool(`${value}`);
+        } else if (!isNaN(Number(value)) && value.toString().trim() !== '') {
+            return Number(value);
+        }
+
+        // Default to string
         return value;
     }
 
-    private convertType(arg: Argument<T>, value: any): T[keyof T] {
+    private convertType(
+        arg: Argument<S, Extract<keyof S, string>>,
+        value: any,
+    ): S[keyof S] {
         const isArrayType =
             arg.nargs === '*' ||
             (typeof arg.nargs === 'number' && arg.nargs > 1);
 
         if (isArrayType && Array.isArray(value)) {
             return value.map((val) =>
-                this.convertSingleValue(val, arg.type),
-            ) as T[keyof T];
+                this.convertSingleValue(val, arg),
+            ) as S[keyof S];
         }
 
-        return this.convertSingleValue(value, arg.type) as T[keyof T];
+        return this.convertSingleValue(value, arg) as S[keyof S];
     }
 
-    private setParsedArg(arg: Argument<T>, value: T[keyof T]) {
+    private setParsedArg(
+        arg: Argument<S, Extract<keyof S, string>>,
+        value: S[keyof S],
+    ) {
         this.validateChoices(arg, value);
         const convertedValue = this.convertType(arg, value);
-        this.parsedArgs[arg.name as keyof T] = convertedValue;
+        this.parsedArgs[arg.name as keyof S] = convertedValue;
     }
 
-    public addArgument(arg: Argument<T>) {
+    public addArgument(arg: Argument<S, Extract<keyof S, string>>) {
         if (arg.name.length === 0) {
             throw new Error('At least one alias is required');
         }
@@ -211,6 +258,10 @@ export class ArgParser<T extends Record<string, any>> {
             throw new Error(
                 `Alias prefix tacks are implicitly added. Remove the prefix from ${arg.name}`,
             );
+        }
+
+        if (arg.nargs === 0) {
+            throw new ZeroNargsError(arg.name);
         }
 
         if (this.arguments.some((a) => a.name === arg.name)) {

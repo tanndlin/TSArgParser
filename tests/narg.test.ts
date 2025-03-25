@@ -9,7 +9,6 @@ describe('Narg Tests', () => {
                     required: true,
                     nargs: '?',
                     default: 'bar',
-                    type: 'string',
                 },
             ],
             '--foo',
@@ -27,7 +26,6 @@ describe('Narg Tests', () => {
                     required: true,
                     nargs: '*',
                     default: [],
-                    type: 'string',
                 },
             ],
             '--foo bar baz',
@@ -45,9 +43,12 @@ describe('Narg Tests', () => {
                     required: true,
                     nargs: '*',
                     default: [],
-                    type: 'string',
                 },
-                { name: 'hello', required: true, nargs: 0, type: 'boolean' },
+                {
+                    name: 'hello',
+                    required: false,
+                    nargs: 'flag',
+                },
             ],
             '--foo bar baz --hello',
         );
@@ -64,7 +65,6 @@ describe('Narg Tests', () => {
                     name: 'files',
                     required: true,
                     nargs: '*',
-                    type: 'string',
                     default: [],
                 },
             ],
@@ -80,7 +80,6 @@ describe('Narg Tests', () => {
                     name: 'files',
                     required: true,
                     nargs: '*',
-                    type: 'string',
                     default: ['default.txt'],
                 },
             ],
@@ -96,7 +95,6 @@ describe('Narg Tests', () => {
                     name: 'numbers',
                     required: true,
                     nargs: '*',
-                    type: 'number',
                     default: [],
                 },
             ],
@@ -104,5 +102,22 @@ describe('Narg Tests', () => {
         );
         expect(args.numbers).toEqual([1, 2, 3]);
         expect(typeof args.numbers[0]).toBe('number');
+    });
+
+    it('Should disallow nargs=0', () => {
+        expect(() =>
+            parseArgs(
+                [
+                    {
+                        name: 'foo',
+                        required: true,
+                        nargs: 0,
+                    },
+                ],
+                '--foo',
+            ),
+        ).toThrow(
+            "nargs=0 is not allowed Did you mean nargs='flag'? (arg: foo)",
+        );
     });
 });

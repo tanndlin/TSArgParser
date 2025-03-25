@@ -18,6 +18,7 @@
         "import"
     ],
     "rules": {
+        "@typescript-eslint/no-unsafe-argument": "error",
         "@typescript-eslint/naming-convention": "warn",
         "@typescript-eslint/semi": "warn",
         "@typescript-eslint/lines-between-class-members": "off",
