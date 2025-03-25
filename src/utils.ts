@@ -11,7 +11,7 @@ export function stringToBool(value: string): boolean {
 
 export function isRequired<
     S extends Schema,
-    K extends Extract<keyof S, string> = Extract<keyof S, string>,
+    K extends keyof S & string = keyof S & string,
 >(arg: Argument<S, K>): arg is RequiredValueArgument<S, K> {
     return typeof arg.nargs === 'number';
 }
