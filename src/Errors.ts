@@ -1,3 +1,12 @@
+import { Argument } from './types';
+
+export class InvalidNameError extends Error {
+    constructor(message: string, arg: Argument<any>) {
+        super(`${message} (arg: ${arg.name})`);
+        this.name = 'InvalidNameError';
+    }
+}
+
 export class MissingArgumentError extends Error {
     constructor(arg: string) {
         super(`Missing required argument: ${arg}`);

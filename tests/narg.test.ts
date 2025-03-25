@@ -6,7 +6,6 @@ describe('Narg Tests', () => {
             [
                 {
                     name: 'foo',
-                    required: true,
                     nargs: '?',
                     default: 'bar',
                 },
@@ -23,7 +22,6 @@ describe('Narg Tests', () => {
             [
                 {
                     name: 'foo',
-                    required: true,
                     nargs: '*',
                     default: [],
                 },
@@ -40,13 +38,11 @@ describe('Narg Tests', () => {
             [
                 {
                     name: 'foo',
-                    required: true,
                     nargs: '*',
                     default: [],
                 },
                 {
                     name: 'hello',
-                    required: false,
                     nargs: 'flag',
                 },
             ],
@@ -63,7 +59,6 @@ describe('Narg Tests', () => {
             [
                 {
                     name: 'files',
-                    required: true,
                     nargs: '*',
                     default: [],
                 },
@@ -78,7 +73,6 @@ describe('Narg Tests', () => {
             [
                 {
                     name: 'files',
-                    required: true,
                     nargs: '*',
                     default: ['default.txt'],
                 },
@@ -93,7 +87,6 @@ describe('Narg Tests', () => {
             [
                 {
                     name: 'numbers',
-                    required: true,
                     nargs: '*',
                     default: [],
                 },
@@ -110,7 +103,6 @@ describe('Narg Tests', () => {
                 [
                     {
                         name: 'foo',
-                        required: true,
                         nargs: 0,
                     },
                 ],

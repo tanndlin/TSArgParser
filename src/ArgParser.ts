@@ -3,19 +3,27 @@ import {
     DuplicateArgumentError,
     DuplicateCLIArgumentError,
     InvalidChoiceError,
+    InvalidNameError,
     MissingArgumentError,
     NotEnoughValuesError,
     UnknownShorthandError,
     ZeroNargsError,
 } from './Errors';
-import { Argument, FlagArgument, Schema } from './types';
-import { prependTacks, stringToBool } from './utils';
+import {
+    Argument,
+    FlagArgument,
+    OptionalValueArgument,
+    RequiredValueArgument,
+    Schema,
+    ValueArgument,
+} from './types';
+import { isRequired, prependTacks, stringToBool } from './utils';
 
 export class ArgParser<S extends Schema> {
-    private arguments: Argument<S, Extract<keyof S, string>>[];
+    private arguments: Argument<S>[];
     private parsedArgs: S;
 
-    constructor(args: Argument<S, Extract<keyof S, string>>[] = []) {
+    constructor(args: Argument<S>[] = []) {
         this.arguments = [];
         args.forEach((arg) => this.addArgument(arg));
 
@@ -32,7 +40,7 @@ export class ArgParser<S extends Schema> {
                     ? this.parseFlagArg(arg, givenArgs)
                     : this.parseWithArgs(arg, givenArgs);
 
-            if (!found && arg.required) {
+            if (!found && isRequired(arg)) {
                 throw new MissingArgumentError(arg.name);
             }
         });
@@ -40,10 +48,7 @@ export class ArgParser<S extends Schema> {
         return this.parsedArgs;
     }
 
-    private parseWithArgs(
-        arg: Argument<S, Extract<keyof S, string>>,
-        givenArgs: string[],
-    ): boolean {
+    private parseWithArgs(arg: ValueArgument<S>, givenArgs: string[]): boolean {
         switch (arg.nargs) {
             case '*':
                 return this.parseAnyArgs(arg, givenArgs);
@@ -75,7 +80,7 @@ export class ArgParser<S extends Schema> {
     }
 
     private parseAnyArgs(
-        arg: Argument<S, Extract<keyof S, string>>,
+        arg: OptionalValueArgument<S>,
         givenArgs: string[],
     ): boolean {
         if (arg.nargs !== '*') {
@@ -99,7 +104,7 @@ export class ArgParser<S extends Schema> {
     }
 
     private parseOptionalArg(
-        arg: Argument<S, Extract<keyof S, string>>,
+        arg: OptionalValueArgument<S>,
         givenArgs: string[],
     ): boolean {
         if (arg.nargs !== '?') {
@@ -123,19 +128,12 @@ export class ArgParser<S extends Schema> {
     }
 
     private parseNArgs(
-        arg: Argument<S, Extract<keyof S, string>>,
+        arg: RequiredValueArgument<S>,
         givenArgs: string[],
     ): boolean {
-        if (typeof arg.nargs !== 'number') {
-            return false;
-        }
-
         const cliFlag = prependTacks(arg.name);
         const index = this.getCliFlagIndex(cliFlag, givenArgs);
         if (index === -1) {
-            if (!arg.required) {
-                this.setParsedArg(arg, arg.default as S[keyof S]);
-            }
             return false;
         }
 
@@ -153,10 +151,7 @@ export class ArgParser<S extends Schema> {
         return true;
     }
 
-    private parseFlagArg(
-        arg: FlagArgument<S, Extract<keyof S, string>>,
-        givenArgs: string[],
-    ) {
+    private parseFlagArg(arg: FlagArgument<S>, givenArgs: string[]) {
         const cliFlag = prependTacks(arg.name);
         this.parsedArgs[arg.name as keyof S] = givenArgs.includes(
             cliFlag,
@@ -165,10 +160,7 @@ export class ArgParser<S extends Schema> {
         return true;
     }
 
-    private validateChoices(
-        arg: Argument<S, Extract<keyof S, string>>,
-        value: any,
-    ): void {
+    private validateChoices(arg: Argument<S>, value: any): void {
         if (!arg.choices) {
             return;
         }
@@ -189,18 +181,14 @@ export class ArgParser<S extends Schema> {
         }
     }
 
-    private convertSingleValue(
-        value: any,
-        arg: Argument<S, Extract<keyof S, string>>,
-    ): any {
-        // If it's a flag argument (nargs=0), treat as boolean
+    private convertSingleValue(value: any, arg: Argument<S>): any {
         if (arg.nargs === 'flag') {
             return true;
         }
 
         // Try to infer type from default value if available
-        if (arg.default !== undefined) {
-            const defaultType = typeof arg.default;
+        const defaultType = typeof arg.choices?.[0];
+        if (defaultType !== undefined) {
             if (defaultType === 'number') {
                 return Number(value);
             } else if (defaultType === 'boolean') {
@@ -219,10 +207,7 @@ export class ArgParser<S extends Schema> {
         return value;
     }
 
-    private convertType(
-        arg: Argument<S, Extract<keyof S, string>>,
-        value: any,
-    ): S[keyof S] {
+    private convertType(arg: Argument<S>, value: any): S[keyof S] {
         const isArrayType =
             arg.nargs === '*' ||
             (typeof arg.nargs === 'number' && arg.nargs > 1);
@@ -236,27 +221,25 @@ export class ArgParser<S extends Schema> {
         return this.convertSingleValue(value, arg) as S[keyof S];
     }
 
-    private setParsedArg(
-        arg: Argument<S, Extract<keyof S, string>>,
-        value: S[keyof S],
-    ) {
+    private setParsedArg(arg: Argument<S>, value: S[keyof S]) {
         this.validateChoices(arg, value);
         const convertedValue = this.convertType(arg, value);
         this.parsedArgs[arg.name as keyof S] = convertedValue;
     }
 
-    public addArgument(arg: Argument<S, Extract<keyof S, string>>) {
+    public addArgument(arg: Argument<S>) {
         if (arg.name.length === 0) {
-            throw new Error('At least one alias is required');
+            throw new InvalidNameError('At least one alias is required', arg);
         }
 
         if (!arg.name) {
-            throw new Error('Alias cannot be empty');
+            throw new InvalidNameError('Alias cannot be empty', arg);
         }
 
         if (arg.name.startsWith('-')) {
-            throw new Error(
-                `Alias prefix tacks are implicitly added. Remove the prefix from ${arg.name}`,
+            throw new InvalidNameError(
+                'Alias prefix tacks are implicitly added and thus should not contain them.',
+                arg,
             );
         }
 

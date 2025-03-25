@@ -1,41 +1,43 @@
 export type Schema = Record<string, any>;
 
-export type BaseArgument<S extends Schema, K extends keyof S> = {
+export type BaseArgument<
+    S extends Schema,
+    K extends Extract<keyof S, string> = Extract<keyof S, string>,
+> = {
     name: K;
-    required: boolean;
     choices?: S[K][];
-    default?: S[K];
 };
 
-type RequiredValueArgument = {
+export type RequiredValueArgument<
+    S extends Schema,
+    K extends Extract<keyof S, string> = Extract<keyof S, string>,
+> = {
     nargs: number;
-    required: true;
-};
-
-export type FlagArgument<S extends Schema, K extends keyof S> = {
-    nargs: 'flag';
-    required: false;
 } & BaseArgument<S, K>;
 
-type OptionalValueArgument<S extends Schema, K extends keyof S> =
-    | {
-          required: false;
-          nargs: number;
-          default: S[K];
-      }
-    | {
-          nargs: '?' | '*';
-          default: S[K];
-      };
+export type FlagArgument<
+    S extends Schema,
+    K extends Extract<keyof S, string> = Extract<keyof S, string>,
+> = {
+    nargs: 'flag';
+} & BaseArgument<S, K>;
 
-type ValueArgument<S extends Schema, K extends keyof S> = (
-    | OptionalValueArgument<S, K>
-    | RequiredValueArgument
-) &
-    BaseArgument<S, K>;
+export type OptionalValueArgument<
+    S extends Schema,
+    K extends Extract<keyof S, string> = Extract<keyof S, string>,
+> = {
+    nargs: '?' | '*';
+    default: S[K];
+} & BaseArgument<S, K>;
 
-export type Argument<S extends Schema, K extends keyof S> =
-    | ValueArgument<S, K>
-    | FlagArgument<S, K>;
+export type ValueArgument<
+    S extends Schema,
+    K extends Extract<keyof S, string> = Extract<keyof S, string>,
+> = OptionalValueArgument<S, K> | RequiredValueArgument<S, K>;
+
+export type Argument<
+    S extends Schema,
+    K extends Extract<keyof S, string> = Extract<keyof S, string>,
+> = ValueArgument<S, K> | FlagArgument<S, K>;
 
 export type NArgs = Argument<any, any>['nargs'];

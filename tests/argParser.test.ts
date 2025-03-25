@@ -13,7 +13,6 @@ describe('Arg Parser Tests', () => {
             [
                 {
                     name: 'foo',
-                    required: false,
                     nargs: 'flag',
                 },
             ],
@@ -29,29 +28,22 @@ describe('Arg Parser Tests', () => {
         expect(() =>
             parser.addArgument({
                 name: '--flag',
-                required: false,
                 nargs: 'flag',
             }),
         ).toThrow(
-            'Alias prefix tacks are implicitly added. Remove the prefix from --flag',
+            'Alias prefix tacks are implicitly added and thus should not contain them. (arg: --flag)',
         );
     });
 
     it('Should parse a single char flag arg', () => {
-        const args = parseArgs(
-            [{ name: 'f', required: false, nargs: 'flag' }],
-            '-f',
-        );
+        const args = parseArgs([{ name: 'f', nargs: 'flag' }], '-f');
         expect(args).toBeDefined();
         expect(args).toHaveProperty('f');
         expect(args.f).toBe(true);
     });
 
     it('Should parse a singular flag arg', () => {
-        const args = parseArgs(
-            [{ name: 'flag', required: false, nargs: 'flag' }],
-            '--flag',
-        );
+        const args = parseArgs([{ name: 'flag', nargs: 'flag' }], '--flag');
         expect(args).toBeDefined();
         expect(args).toHaveProperty('flag');
         expect(args.flag).toBe(true);
@@ -63,9 +55,7 @@ describe('Arg Parser Tests', () => {
                 [
                     {
                         name: 'flag',
-                        required: true,
                         nargs: 1,
-                        default: 69,
                     },
                 ],
                 '--hello --world',
@@ -74,30 +64,21 @@ describe('Arg Parser Tests', () => {
     });
 
     it('Should parse an arg with value', () => {
-        const args = parseArgs(
-            [{ name: 'foo', required: true, nargs: 1 }],
-            '--foo bar',
-        );
+        const args = parseArgs([{ name: 'foo', nargs: 1 }], '--foo bar');
         expect(args).toBeDefined();
         expect(args).toHaveProperty('foo');
         expect(args.foo).toBe('bar');
     });
 
     it('Should parse an arg with number value', () => {
-        const args = parseArgs(
-            [{ name: 'foo', required: true, nargs: 1 }],
-            '--foo 69',
-        );
+        const args = parseArgs([{ name: 'foo', nargs: 1 }], '--foo 69');
         expect(args).toBeDefined();
         expect(args).toHaveProperty('foo');
         expect(args.foo).toBe(69);
     });
 
     it('Should parse an arg with value', () => {
-        const args = parseArgs(
-            [{ name: 'foo', required: true, nargs: 2 }],
-            '--foo bar baz',
-        );
+        const args = parseArgs([{ name: 'foo', nargs: 2 }], '--foo bar baz');
         expect(args).toBeDefined();
         expect(args).toHaveProperty('foo');
         expect(args.foo).toBeInstanceOf(Array);
@@ -109,7 +90,6 @@ describe('Arg Parser Tests', () => {
             [
                 {
                     name: 'foo',
-                    required: true,
                     nargs: '?',
                     default: 'baz',
                 },
@@ -126,13 +106,11 @@ describe('Arg Parser Tests', () => {
             [
                 {
                     name: 'numIterations',
-                    required: true,
                     nargs: 1,
                 },
                 {
                     name: 'phrase',
-                    required: false,
-                    nargs: 1,
+                    nargs: '?',
                     default: 'Hello World!',
                 },
             ],
@@ -148,12 +126,10 @@ describe('Arg Parser Tests', () => {
             [
                 {
                     name: 'numIterations',
-                    required: true,
                     nargs: 1,
                 },
                 {
                     name: 'phrase',
-                    required: false,
                     nargs: '?',
                     default: 'Hello World!',
                 },
@@ -170,12 +146,10 @@ describe('Arg Parser Tests', () => {
             [
                 {
                     name: 'numIterations',
-                    required: true,
                     nargs: 1,
                 },
                 {
                     name: 'phrase',
-                    required: false,
                     nargs: '?',
                     default: 'Hello World!',
                 },
@@ -192,7 +166,6 @@ describe('Arg Parser Tests', () => {
             [
                 {
                     name: 'foo',
-                    required: true,
                     nargs: 1,
 
                     choices: ['bar', 'baz'],
@@ -210,7 +183,6 @@ describe('Arg Parser Tests', () => {
             [
                 {
                     name: 'foo',
-                    required: true,
                     nargs: 2,
 
                     choices: ['bar', 'baz', 'fun'],
@@ -229,7 +201,6 @@ describe('Arg Parser Tests', () => {
                 [
                     {
                         name: 'foo',
-                        required: true,
                         nargs: 1,
                         choices: ['bar', 'baz'],
                     },
@@ -240,9 +211,9 @@ describe('Arg Parser Tests', () => {
     });
 
     it('Should throw for an arg with missing value', () => {
-        expect(() =>
-            parseArgs([{ name: 'foo', required: true, nargs: 1 }], '--foo'),
-        ).toThrow('Not enough values supplied (arg: foo)');
+        expect(() => parseArgs([{ name: 'foo', nargs: 1 }], '--foo')).toThrow(
+            'Not enough values supplied (arg: foo)',
+        );
     });
 
     it('Should throw duplicate parser args', () => {
@@ -251,12 +222,10 @@ describe('Arg Parser Tests', () => {
                 [
                     {
                         name: 'foo',
-                        required: false,
                         nargs: 'flag',
                     },
                     {
                         name: 'foo',
-                        required: false,
                         nargs: 'flag',
                     },
                 ],
@@ -271,7 +240,6 @@ describe('Arg Parser Tests', () => {
                 [
                     {
                         name: 'foo',
-                        required: false,
                         nargs: 'flag',
                     },
                 ],
@@ -282,14 +250,14 @@ describe('Arg Parser Tests', () => {
 
     it('Should handle boolean conversion for non-flag arguments', () => {
         const args = parseArgs(
-            [{ name: 'enabled', required: true, nargs: 1 }],
+            [{ name: 'enabled', nargs: 1 }],
             '--enabled true',
         );
         expect(args.enabled).toBe(true);
         expect(typeof args.enabled).toBe('boolean');
 
         const args2 = parseArgs(
-            [{ name: 'enabled', required: true, nargs: 1 }],
+            [{ name: 'enabled', nargs: 1 }],
             '--enabled false',
         );
         expect(args2.enabled).toBe(false);
@@ -298,10 +266,7 @@ describe('Arg Parser Tests', () => {
     it('Should handle large nargs values', () => {
         const args = parseArgs<{
             values: string[];
-        }>(
-            [{ name: 'values', required: true, nargs: 5 }],
-            '--values a b c d e',
-        );
+        }>([{ name: 'values', nargs: 5 }], '--values a b c d e');
         expect(args.values).toEqual(['a', 'b', 'c', 'd', 'e']);
         expect(args.values.length).toBe(5);
     });
@@ -311,7 +276,6 @@ describe('Arg Parser Tests', () => {
             [
                 {
                     name: 'modes',
-                    required: true,
                     nargs: '*',
 
                     choices: ['dev', 'prod', 'test'],
@@ -327,7 +291,6 @@ describe('Arg Parser Tests', () => {
                 [
                     {
                         name: 'modes',
-                        required: true,
                         nargs: '*',
 
                         choices: ['dev', 'prod', 'test'],
@@ -346,11 +309,10 @@ describe('Arg Parser Tests', () => {
             active: boolean;
         }>(
             [
-                { name: 'name', required: true, nargs: 1 },
-                { name: 'age', required: true, nargs: 1 },
+                { name: 'name', nargs: 1 },
+                { name: 'age', nargs: 1 },
                 {
                     name: 'active',
-                    required: false,
                     nargs: 'flag',
                 },
             ],
@@ -369,37 +331,10 @@ describe('Arg Parser Tests', () => {
 
         const parser = new ArgParser<{
             test: string;
-        }>([{ name: 'test', required: true, nargs: 1 }]);
+        }>([{ name: 'test', nargs: 1 }]);
         const args = parser.parse();
         expect(args.test).toBe('value');
 
         process.argv = originalArgv; // restore original argv
-    });
-
-    it('Should handle default values for required=false arguments', () => {
-        const args = parseArgs(
-            [
-                { name: 'required', required: true, nargs: 1 },
-                {
-                    name: 'optional1',
-                    required: false,
-                    nargs: 1,
-
-                    default: 'default1',
-                },
-                {
-                    name: 'optional2',
-                    required: false,
-                    nargs: 1,
-
-                    default: 'default2',
-                },
-            ],
-            '--required value --optional1 custom',
-        );
-
-        expect(args.required).toBe('value');
-        expect(args.optional1).toBe('custom');
-        expect(args.optional2).toBe('default2');
     });
 });
