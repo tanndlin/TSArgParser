@@ -96,4 +96,14 @@ describe('Invalid state tests', () => {
             ),
         ).toThrow('Duplicate args specified in command line (arg: --foo)');
     });
+
+    it('Should throw for empty name', () => {
+        const parser = new ArgParser();
+        expect(() =>
+            parser.addArgument({
+                name: '',
+                nargs: 1,
+            }),
+        ).toThrow('Alias cannot be empty (arg: )');
+    });
 });

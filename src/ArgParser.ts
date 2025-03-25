@@ -222,10 +222,6 @@ export class ArgParser<S extends Schema> {
     }
 
     public addArgument(arg: Argument<S>) {
-        if (arg.name.length === 0) {
-            throw new InvalidNameError('At least one alias is required', arg);
-        }
-
         if (!arg.name) {
             throw new InvalidNameError('Alias cannot be empty', arg);
         }
