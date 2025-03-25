@@ -83,7 +83,9 @@ describe('Narg Tests', () => {
     });
 
     it('Should properly convert all numeric values for nargs=*', () => {
-        const args = parseArgs(
+        const args = parseArgs<{
+            numbers: number[];
+        }>(
             [
                 {
                     name: 'numbers',

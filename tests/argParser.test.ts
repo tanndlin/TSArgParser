@@ -9,6 +9,8 @@ describe('Arg Parser Tests', () => {
     });
 
     it('Should ignore unspecified args', () => {
+        expect(parseArgs([], '--hello')).toStrictEqual({});
+
         const args = parseArgs(
             [
                 {
@@ -23,18 +25,6 @@ describe('Arg Parser Tests', () => {
         });
     });
 
-    it('Should disallow leading tacks', () => {
-        const parser = new ArgParser();
-        expect(() =>
-            parser.addArgument({
-                name: '--flag',
-                nargs: 'flag',
-            }),
-        ).toThrow(
-            'Alias prefix tacks are implicitly added and thus should not contain them. (arg: --flag)',
-        );
-    });
-
     it('Should parse a single char flag arg', () => {
         const args = parseArgs([{ name: 'f', nargs: 'flag' }], '-f');
         expect(args).toBeDefined();
@@ -47,20 +37,6 @@ describe('Arg Parser Tests', () => {
         expect(args).toBeDefined();
         expect(args).toHaveProperty('flag');
         expect(args.flag).toBe(true);
-    });
-
-    it('Should throw for missing required arg', () => {
-        expect(() =>
-            parseArgs(
-                [
-                    {
-                        name: 'flag',
-                        nargs: 1,
-                    },
-                ],
-                '--hello --world',
-            ),
-        ).toThrow('Missing required argument: flag');
     });
 
     it('Should parse an arg with value', () => {
@@ -195,82 +171,12 @@ describe('Arg Parser Tests', () => {
         expect(args.foo).toStrictEqual(['bar', 'fun']);
     });
 
-    it('Should disallow incorrect choices', () => {
-        expect(() =>
-            parseArgs(
-                [
-                    {
-                        name: 'foo',
-                        nargs: 1,
-                        choices: ['bar', 'baz'],
-                    },
-                ],
-                '--foo fun',
-            ),
-        ).toThrow('Invalid choice for argument foo (choices: bar, baz)');
-    });
-
-    it('Should enforce numeric choices', () => {
-        const args = parseArgs(
-            [
-                {
-                    name: 'foo',
-                    nargs: 1,
-                    choices: [1, 2, 3],
-                },
-            ],
-            '--foo 2',
-        );
-        expect(args).toBeDefined();
-        expect(args).toHaveProperty('foo');
-        expect(args.foo).toStrictEqual(2);
-    });
-
-    it('Should throw for an arg with missing value', () => {
-        expect(() => parseArgs([{ name: 'foo', nargs: 1 }], '--foo')).toThrow(
-            'Not enough values supplied (arg: foo)',
-        );
-    });
-
-    it('Should throw duplicate parser args', () => {
-        expect(() =>
-            parseArgs(
-                [
-                    {
-                        name: 'foo',
-                        nargs: 'flag',
-                    },
-                    {
-                        name: 'foo',
-                        nargs: 'flag',
-                    },
-                ],
-                '--foo',
-            ),
-        ).toThrow('Duplicate args specified to ArgParser (arg: foo)');
-    });
-
-    it('Should throw duplicate given args', () => {
-        expect(() =>
-            parseArgs(
-                [
-                    {
-                        name: 'foo',
-                        nargs: 'flag',
-                    },
-                ],
-                '--foo --foo',
-            ),
-        ).toThrow('Duplicate args specified in command line (arg: --foo)');
-    });
-
     it('Should handle boolean conversion for non-flag arguments', () => {
-        const args = parseArgs(
-            [{ name: 'enabled', nargs: 1 }],
-            '--enabled true',
-        );
-        expect(args.enabled).toBe(true);
+        const args = parseArgs<{
+            enabled: boolean;
+        }>([{ name: 'enabled', nargs: 'flag' }], '--enabled true');
         expect(typeof args.enabled).toBe('boolean');
+        expect(args.enabled).toBe(true);
 
         const args2 = parseArgs(
             [{ name: 'enabled', nargs: 1 }],

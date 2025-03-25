@@ -1,4 +1,5 @@
-export type Schema = Record<string, any>;
+export type SimpleType = string | number | boolean;
+export type Schema = Record<string, SimpleType | SimpleType[]>;
 
 export type BaseArgument<
     S extends Schema,
