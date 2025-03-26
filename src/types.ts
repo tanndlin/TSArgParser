@@ -6,6 +6,7 @@ export type BaseArgument<
     K extends keyof S & string = keyof S & string,
 > = {
     name: K;
+    describe?: string;
 };
 
 export type RequiredValueArgument<
