@@ -3,12 +3,14 @@ import { parseArgs } from './testutils';
 
 describe('Invalid state tests', () => {
     it('Should disallow leading tacks', () => {
-        const parser = new ArgParser();
-        expect(() =>
-            parser.addArgument({
-                name: '--flag',
-                nargs: 'flag',
-            }),
+        expect(
+            () =>
+                new ArgParser([
+                    {
+                        name: '--flag',
+                        nargs: 'flag',
+                    },
+                ]),
         ).toThrow(
             'Alias prefix tacks are implicitly added and thus should not contain them. (arg: --flag)',
         );
@@ -98,12 +100,14 @@ describe('Invalid state tests', () => {
     });
 
     it('Should throw for empty name', () => {
-        const parser = new ArgParser();
-        expect(() =>
-            parser.addArgument({
-                name: '',
-                nargs: 1,
-            }),
+        expect(
+            () =>
+                new ArgParser([
+                    {
+                        name: '',
+                        nargs: 1,
+                    },
+                ]),
         ).toThrow('Alias cannot be empty (arg: )');
     });
 });

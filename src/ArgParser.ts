@@ -15,12 +15,11 @@ import {
     FlagArgument,
     OptionalValueArgument,
     RequiredValueArgument,
-    Schema,
     ValueArgument,
 } from './types';
 import { isRequired, prependTacks, stringToBool } from './utils';
 
-export class ArgParser<S extends Schema> {
+export class ArgParser<S> {
     private arguments: Argument<S>[];
     private parsedArgs: S;
 

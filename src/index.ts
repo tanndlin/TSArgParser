@@ -7,7 +7,8 @@ const args = parseArgs(
             nargs: '*',
             default: [],
         },
-    ],
+    ] as const,
     '--numbers 1 2 3',
 );
-console.log(args);
+
+console.log(args.numbers);

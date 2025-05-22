@@ -1,4 +1,4 @@
-import { Argument, RequiredValueArgument, Schema } from './types';
+import { Argument, RequiredValueArgument } from './types';
 export function prependTacks(alias: string) {
     const aliasLength = alias.length;
     const tacks = aliasLength === 1 ? '-' : '--';
@@ -9,9 +9,8 @@ export function stringToBool(value: string): boolean {
     return value.toLowerCase() === 'true' || value === '1';
 }
 
-export function isRequired<
-    S extends Schema,
-    K extends keyof S & string = keyof S & string,
->(arg: Argument<S, K>): arg is RequiredValueArgument<S, K> {
+export function isRequired<S>(
+    arg: Argument<S>,
+): arg is RequiredValueArgument<S> {
     return typeof arg.nargs === 'number';
 }
