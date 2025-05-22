@@ -21,7 +21,7 @@
                 {
                     "name": "Test",
                     "commands": [
-                        "npm test",
+                        "npm test:watch",
                     ]
                 }
             ]
