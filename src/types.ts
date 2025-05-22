@@ -1,28 +1,34 @@
-export type BaseArgument<S> = {
-    name: keyof S & string;
+export type BaseArgument<K extends string> = {
+    name: K;
     describe?: string;
 };
 
-export type RequiredValueArgument<S, V = S[keyof S & string]> = {
-    nargs: number;
-    choices?: V[];
-} & BaseArgument<S>;
+export type RequiredValueArgument<S> = {
+    [P in keyof S]: {
+        nargs: number;
+        choices?: S[P][];
+    } & BaseArgument<P & string>;
+}[keyof S];
 
 export type FlagArgument<S> = {
     nargs: 'flag';
-} & BaseArgument<S>;
+} & BaseArgument<keyof S & string>;
 
 export type AnyValueArgument<S> = {
-    nargs: '*';
-    default: S[keyof S & string];
-    choices?: S[keyof S][];
-} & BaseArgument<S>;
+    [P in keyof S]: {
+        nargs: '*';
+        default: S[P];
+        choices?: S[P][];
+    } & BaseArgument<P & string>;
+}[keyof S];
 
 export type OptionalValueArgument<S> = {
-    nargs: '?';
-    default: S[keyof S];
-    choices?: S[keyof S][];
-} & BaseArgument<S>;
+    [P in keyof S]: {
+        nargs: '?';
+        default: S[P];
+        choices?: S[P][];
+    } & BaseArgument<P & string>;
+}[keyof S];
 
 export type ValueArgument<S> =
     | OptionalValueArgument<S>
